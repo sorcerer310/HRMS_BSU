@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body>
+		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>党组织人员通讯录</div>
+	    </div>
+	    <!------------------------------ 分隔空白 -------------------------------->
+	    <div style="margin:10px 0;"></div>
+	    
+	    <table id="dg" title="通讯录" style="height:450px;" data-options="
+	    	iconcls:'icon-edit',
+	    	rownumbers:true,
+	    	singleSelect:true,
+	    	autoRowHeight:false,
+	    	pagination:true,
+	    	pageSize:50">
+	    
+		    <thead>
+		    	<tr>
+		    		<th field="id" width="30" hidden="true">ID</th>
+		    		<th field="unit" width="100">单位</th>
+		    		<th field="name" width="50">姓名</th>
+		    		<th field="duties" width="100">职务</th>
+		    		<th field="phone" width="100">电话</th>
+		    	</tr>
+		    </thead>
+	    </table>
+	    <script>
+		    $(function () {
+	            $('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', []);
+		    	getData();
+	        });
+		    //获得数据
+		    function getData(){
+		    	$.get("csvdata/content.csv",
+		    		function(data,status){
+		    			var csvrows = data.split("\n");
+		    			var rows = [];
+
+		    			for(var i=1;i<csvrows.length;i++){
+		    				var csvrow = csvrows[i].split(",");
+		    				rows.push({id:csvrow[0],unit:csvrow[1],name:csvrow[2],duties:csvrow[3],phone:csvrow[4]});
+		    			}
+		    			$('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', rows);
+		    	});
+		    }
+		    
+		    function pagerFilter(data) {
+	             if (typeof data.length == 'number' && typeof data.splice == 'function') {    // is array
+	                 data = {
+	                     total: data.length,
+	                     rows: data
+	                 }
+	             }
+	             var dg = $(this);
+	             var opts = dg.datagrid('options');
+	             var pager = dg.datagrid('getPager');
+	             pager.pagination({
+	                 onSelectPage: function (pageNum, pageSize) {
+	                     opts.pageNumber = pageNum;
+	                     opts.pageSize = pageSize;
+	                     pager.pagination('refresh', {
+	                         pageNumber: pageNum,
+	                         pageSize: pageSize
+	                     });
+	                     dg.datagrid('loadData', data);
+	                 }
+	             });
+	             if (!data.originalRows) {
+	                 data.originalRows = (data.rows);
+	             }
+	             var start = (opts.pageNumber - 1) * parseInt(opts.pageSize);
+	             var end = start + parseInt(opts.pageSize);
+	             data.rows = (data.originalRows.slice(start, end));
+	             return data;
+	         }
+	    </script>
+	</body>
+</html>

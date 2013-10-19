@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        
+        <link rel="stylesheet" type="text/css" href="css/pikachoose/bottom.css"/>
+        <script type="text/javascript" src="js/pikachoose/jquery.jcarousel.min.js"></script>
+        <script type="text/javascript" src="js/pikachoose/jquery.pikachoose.js"></script>
+        <script >
+	    	$(document).ready(function(){
+	    		
+	    		$('#pikame').PikaChoose({carousel:true,carouselOptions:{wrap:'circular'}});
+	    		getData();
+				
+	    		//imgswitch事件详见jquery.pikachoose.js文件591行
+	    		$('#rcontent').bind("imgswitch",function(target,sdata){
+					$.getJSON("jsondata/life/life.json",function(data){
+						var html = "";
+						$.each(data, function(i, field){
+							if(field.id==sdata){
+								$('#rtitle').text(field.title);
+								$('#rcontent').text(field.content);
+							}
+						});
+					});
+	    		});
+	    	});
+	    	//初始化切换事件
+	    	
+	    	
+			//从json文件中获得数据
+			function getData(){
+				$.getJSON("jsondata/life/life.json",function(data){
+					var html = "";
+					$.each(data, function(i, field){
+					//	html += "<li><img src=\""+field.img+"\"/><span>"+field.title+"</span></li>\n";
+						//alert(i+1);
+						//$('#title'+(i+1)).innerText(field.title);
+						//alert(field.title);
+						$('#title1').text(field.title);
+					});
+					
+					//alert($('#title1').text());
+				});
+			}
+			//点击图片显示数据
+			function clickImg(index){
+				$.getJSON("jsondata/life/life.json",function(data){
+					var html = "";
+					$.each(data, function(i, field){
+					//	html += "<li><img src=\""+field.img+"\"/><span>"+field.title+"</span></li>\n";
+						//alert(i+1);
+						//$('#title'+(i+1)).innerText(field.title);
+						//alert(field.title);
+						//$('#title1').text(field.title);
+						if((i+1)==index){
+							$('#rtitle').text(field.title);
+							$('#rcontent').text(field.content);
+						}
+						
+					});
+				});
+			}
+	    </script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body>
+	    <div class="easyui-panel" title="文化生活" style="width:auto;height:500px;padding:10px">
+	    	<div class="easyui-layout" data-options="fit:true">
+	    		<div data-options="region:'west',split:false" style="width:560px;padding:0px">
+					<div class="pikachoose" style="padding:10px">
+ 						<ul id="pikame" class="jcarousel-skin-pika">
+							<li><a href="javascript:clickImg(1);"><img id="img1" src="img/life/1.jpg"/></a><span id="title1">1.jpg</span></li>
+							<li><a href="javascript:clickImg(2);"><img id="img2" src="img/life/2.jpg"/></a><span id="title2">2.jpg</span></li>
+							<li><a href="javascript:clickImg(3);"><img id="img3" src="img/life/3.jpg"/></a><span id="title3">3.jpg</span></li>
+							<li><a href="javascript:clickImg(4);"><img id="img4" src="img/life/4.jpg"/></a><span id="title4">4.jpg</span></li>
+							<li><a href="javascript:clickImg(5);"><img id="img5" src="img/life/5.jpg"/></a><span id="title5">5.jpg</span></li>
+						</ul> 
+				    </div>
+				</div>
+				<div data-options="region:'center'" style="padding:10px">
+					<h3 style="color:#0099FF" id="rtitle"></h3>
+					<p id="rcontent"></p>
+				</div>
+	    	</div>
+		</div>
+	</body>
+</html>

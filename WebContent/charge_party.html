@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body style="background-image:url(img/mainbg.png)">
+		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>党费收缴管理</div>
+	    </div>
+	    <!------------------------------ 分隔空白 -------------------------------->
+	    <div style="margin:10px 0;"></div>
+	    <!------------------------------ 条件 -------------------------------->
+	    <div id="tb" style="padding:5px;height:auto">
+	    	<table id="tb_table">
+	    		<tr>
+	    			<td align="right" width="140">姓名:&nbsp;<input class="easyui-validatebox" id="name" data-options="" style="width:100px"></td>
+	    			<td align="right" width="140">单位:&nbsp;<input class="easyui-combobox" id="unit" style="width:100px" data-options="
+																							url:'jsondata/unit.json',
+																							valueField:'unit',
+																							textField:'unit',
+																							panelWidth:100,
+																							panelHeight:'auto'"></td>
+										
+	    		</tr>
+	    	</table>
+			<div style="margin-bottom:5px">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="save()">保存</a>
+ 			    <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="append()" >新建</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="$.messager.confirm('删除', '确定删除?', function (r){if(r){remove()}});">删除</a>
+				<a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'" onclick="getData()">查询</a>
+				<a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'" onclick="bsuExportCsv(makeUrl('charge_party_query',true));">导出excel</a>
+			</div>					
+		</div>
+		<!------------------------------ 返回操作员数据 -------------------------------->
+		<table id="dg" title="查询结果" style="height:450px" data-options="
+					iconcls:'icon-edit',
+					rownumbers:true,
+					singleSelect:true,
+					autoRowHeight:false,
+					pagination:true,
+					pageSize:50,
+					toolbar:'#tb',
+					onDblClickRow:onDblClickRow"
+					>
+			<thead>
+				<tr>
+					<th field="id" width="30"  hidden="true">ID</th>
+					<th field="unitid" width="30" hidden="true">UNITID</th>
+					<th field="name" width="50" editor="text">姓名</th>
+					<th field="unit" width="100" data-options="formatter:function(value,row){return row.unit;},
+																						editor:{type:'combobox',
+																						options:{
+																							valueField:'unit',
+																							textField:'unit',
+																							url:'jsondata/unit.json',
+																							required:true,
+																							missingMessage:'单位不能为空',
+																							editable:false
+																							}
+																						}">单位</th>
+					<th field="joindate" width="85" data-options="editor:{type:'datebox',
+																							options:{
+																								required:true,
+																								missingMessage:'日期不能为空',
+																								editable:false
+																							}
+																						}">入党时间</th> 
+					
+					<th field="identity" width="60" data-options="formatter:function(value,row){return row.identity;},
+																								editor:{type:'combobox',
+																								options:{
+																									valueField:'identity',
+																									textField:'identity',
+																									url:'jsondata/identity.json',
+																									required:true,
+																									missingMessage:'身份不能为空',
+																									editable:false
+																									}
+																							}">身份</th>
+					<th field="ispay" width="60" data-options="formatter:function(value,row){return row.ispay;},
+																													editor:{type:'combobox',
+																													options:{
+																														valueField:'bool',
+																														textField:'bool',
+																														url:'jsondata/true_or_false.json',
+																														required:true,
+																														missingMessage:'是否缴纳不能为空',
+																														editable:false
+																														}
+																												}">是否缴纳</th>																							
+					<th field="income" width="80" data-options="editor:{type:'numberbox',options:{precision:2}}">工资基数</th>
+					<th field="proportion" width="80" >缴纳比例(%)</th>
+					<th field="charge_month" width="80"  >缴纳党费/月</th>
+					<th field="charge_quarter" width="80"  >缴纳党费/季</th>
+					<th field="paydate" width="85" data-options="editor:{type:'datebox',
+																							options:{
+																								required:true,
+																								missingMessage:'日期不能为空',
+																								editable:false
+																							}
+																						}">缴纳日期</th>
+
+				</tr>
+			</thead>
+		</table>
+
+		<!------------------------------ 操作脚本 -------------------------------->
+		
+	    <script>
+         //加载数据
+         $(function () {
+        	 $('#dg').datagrid({
+        		 onAfterEdit:function(rowIndex, rowData, changes){
+                	 //编辑结束后,计算缴纳党费的比例,月缴与季缴数额
+        			 computeCharge(rowData);
+        		 }
+        	 });
+        	 
+        	 //getData();
+             extendEasyUIDataGrid();
+             $('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', []);
+         });
+         
+         //计算党费
+         function computeCharge(rowData){
+        	 //编辑结束后,计算缴纳党费的比例,月缴与季缴数额
+			 var identity = rowData.identity;
+			 var income = rowData.income;
+			 rowData.proportion = 0.0;									//设置初始化值
+			 switch(identity){
+			 case "在职":
+			 	if(income<=3000){
+			 		rowData.proportion = 0.5;
+			 	} else if(income>3000 && income<=5000){
+			 		rowData.proportion = 1;
+			 	}else if(income >5000 && income<=10000){
+			 		rowData.proportion = 1.5;
+			 	}else if(income >10000){
+			 		rowData.proportion = 2;
+			 	}
+			 	rowData.charge_month = (income * (rowData.proportion/100)).toFixed(0);
+			 break;
+			 case "预退":
+				 rowData.proportion = 0;
+				 rowData.charge_month = 5;
+			 break;
+			 case "离退休":
+			 	if(income<=5000){
+			 		rowData.proportion = 0.5;
+			 	}else if(income >5000){
+			 		rowData.proportion = 1;
+			 	}
+			 	rowData.charge_month = (income * (rowData.proportion/100)).toFixed(0);
+   			 break;
+			 }
+		 	rowData.charge_quarter = rowData.charge_month *3;
+		 }
+         
+         
+         
+         //保证验证成功并结束编辑
+         function validateEndEditing() {
+             if (editIndex == undefined) { return true }
+             if ($('#dg').datagrid('validateRow', editIndex)) {
+                 return true;
+             } else {
+                 return false;
+             }
+         }
+
+         //获得数据
+         function getData() {
+             editIndex = undefined;
+             editType = 2;
+        	 var url = makeUrl("charge_party_query",false);
+             $.get(url,
+                            function (data, status) {
+                                var json = eval(data);
+                                var rows = [];
+                                for (var i = 0; i < json.length; i++) {
+                                    rows.push({ id:json[i].id,unitid:json[i].unitid, name:json[i].name,unit:json[i].unit, joindate: json[i].joindate,identity: json[i].identity,
+                                    	income: json[i].income, proportion: json[i].proportion,
+                                        charge_month: json[i].charge_month, charge_quarter: json[i].charge_quarter, ispay: json[i].ispay,
+                                        paydate:json[i].paydate
+         							});
+                                }
+                                $('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', rows);
+                            }
+                     );
+         }
+
+         function pagerFilter(data) {
+             if (typeof data.length == 'number' && typeof data.splice == 'function') {    // is array
+                 data = {
+                     total: data.length,
+                     rows: data
+                 }
+             }
+             var dg = $(this);
+             var opts = dg.datagrid('options');
+             var pager = dg.datagrid('getPager');
+             pager.pagination({
+                 onSelectPage: function (pageNum, pageSize) {
+                     opts.pageNumber = pageNum;
+                     opts.pageSize = pageSize;
+                     pager.pagination('refresh', {
+                         pageNumber: pageNum,
+                         pageSize: pageSize
+                     });
+                     dg.datagrid('loadData', data);
+                 }
+             });
+             if (!data.originalRows) {
+                 data.originalRows = (data.rows);
+             }
+             var start = (opts.pageNumber - 1) * parseInt(opts.pageSize);
+             var end = start + parseInt(opts.pageSize);
+             data.rows = (data.originalRows.slice(start, end));
+             return data;
+         }
+         //-------------------------编辑部分处理---------------------
+         var editIndex = undefined;
+         var editType = 2;
+         //双击对该行数据编辑
+         function onDblClickRow(index) {
+             if (editIndex == undefined) {
+                 $('#dg').datagrid('selectRow', index)
+                                 .datagrid('beginEdit', index)
+                 computeOtherColumn(index);										
+                 editIndex = index;
+                 editType = 0;
+             }
+         }
+         //新增一行数据
+         function append() {
+             if (editIndex == undefined) {
+                 $('#dg').datagrid('appendRow', { id: 0 });
+                 editIndex = $('#dg').datagrid('getRows').length - 1;
+                 $('#dg').datagrid('selectRow', editIndex)
+                                     .datagrid('beginEdit', editIndex);
+				//为是否缴纳设置默认值                 
+                 var ed = $('#dg').datagrid('getEditor',{index:editIndex,field:'ispay'});
+                 $(ed.target).combobox('setValue','否');
+
+                 computeOtherColumn(editIndex);
+                 editType = 1;
+             }
+         }
+         //删除一条数据.
+         function remove() {
+             var row;
+             if (editIndex == undefined)
+                 row = $('#dg').datagrid('getSelected');
+             else
+                 row = $('#dg').datagrid('selectRow', editIndex).datagrid('getSelected');
+             //如果行为空直接返回
+             if (row == null)
+                 return;
+
+             var urlp = {}
+             editType = -1;
+             urlp.state = editType;
+             urlp.table = "charge";
+             urlp.id = row.id;
+             urlp.unitid = row.unitid;
+
+             deleteData(urlp,function(){
+            		getData();
+            });  
+             /*$.get("general_update?" + $.param(urlp),
+                            function (data, status) {
+                                var json = eval("(" + data + ")");
+                                if (json._no != "3004")
+                                    $.message.alert("删除失败", json._msg);
+                                getData();
+                            });*/
+             editIndex = undefined;
+             editType = 2;
+         }
+
+         //保存功能
+         function save() {
+             if (!validateEndEditing()) {
+                 $.messager.alert("验证失败", "行中有非法数据!");
+                 return;
+             }
+             //如果当前为浏览状态或验证不成功直接返回
+             if (editType == 2)
+                 return;
+
+             //保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+             var rows = $('#dg').datagrid('endEdit', editIndex).datagrid('getChanges');
+             if (rows.length == 0) {
+                 editIndex = undefined;
+                 editType = 2;
+                 $.messager.alert("保存错误", "没有改变的行,行数量为0");
+             }
+			
+             
+             //computeCharge(rows);
+             
+             var urlp = {};                                                 //向服务器传递的参数
+             urlp.state = editType;
+             urlp.table = "charge";
+             urlp.type = "党费";
+             urlp.id = rows[0].id;
+             urlp.name = rows[0].name;
+             urlp.unit = rows[0].unit;
+             urlp.joindate = rows[0].joindate;
+             urlp.identity = rows[0].identity;
+             urlp.income = rows[0].income;
+             urlp.proportion = rows[0].proportion;
+             urlp.charge_month = rows[0].charge_month;
+             urlp.charge_quarter = rows[0].charge_quarter;
+             urlp.ispay = rows[0].ispay;
+             urlp.paydate = rows[0].paydate;
+			 urlp.unitid = rows[0].unitid;
+             //判断当前的编辑状态
+             switch (editType) {
+                 case 1:
+                     insertData(urlp,function(){getData();});
+                     break;
+                 case 0:
+                   	 updateData(urlp,function(){
+                   		 getData();
+                   	 });                             
+                     break;
+                 case -1:
+                     break;
+                 default:
+                     break;
+             }
+
+             editIndex = undefined;
+             editType = 2;
+         }
+         //编辑表格时，如果编辑到指定编辑器，重新刷新行数据，显示计算后的其他列数据
+         function computeOtherColumn(index){
+        	 var editors = $('#dg').datagrid('getEditors',index);
+        	 var combobox = editors[8];
+        	 //combobox.val("是");
+        	 var editor = editors[4];
+        	 editor.target.bind('change',function(){
+        		 $('#dg').datagrid('endEdit',index).datagrid('refreshRow',index).datagrid('beginEdit',index);
+        	 });
+         }
+	    </script>
+	</body>
+</html>

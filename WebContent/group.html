@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+<meta charset="utf-8" />
+<title>中油员工信息管理系统</title>
+</head>
+<body style="background-image:url(img/mainbg.png)">
+	<div class="demo-info">
+		<div class="demo-tip icon-tip"></div>
+		<div>用户组管理</div>
+	</div>
+	<!------------------------------ 分隔空白 -------------------------------->
+	<div style="margin: 10px 0;"></div>
+	<!------------------------------ 条件 -------------------------------->
+	<div id="tb" style="padding: 5px; height: auto">
+		
+		<div style="margin: 10px 0;"></div>
+		<div style="margin-bottom: 5px">
+			<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true"
+				onclick="save()">保存</a>
+			<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true"
+				onclick="append()">新建</a> <a href="#" class="easyui-linkbutton"
+				iconCls="icon-remove" plain="true" onclick="$.messager.confirm('删除', '确定删除?', function (r){if(r){remove()}});">删除</a> 
+				<a href="#" class="easyui-linkbutton"
+			data-options="iconCls:'icon-search'" onclick="getData()">查询</a>
+		</div>
+	</div>
+	<!------------------------------ 返回操作员数据 -------------------------------->
+	<table id="dg" title="查询结果" style="height: 450px"
+		data-options="
+					iconcls:'icon-edit',
+					rownumbers:true,
+					singleSelect:true,
+					autoRowHeight:false,
+					pagination:true,
+					pageSize:50,
+					toolbar:'#tb',
+					onDblClickRow:onDblClickRow">
+		<thead>
+			<tr>
+				<th field="id" width="30" hidden="true">ID</th>
+				<th field="no" whidth="80" editor="text">权限组</th>
+			</tr>
+		</thead>
+	</table>
+
+	<!------------------------------ 操作脚本 -------------------------------->
+	<script>
+		//加载数据
+		$(function() {
+			$('#dg').datagrid({
+				loadFilter : pagerFilter
+			}).datagrid('loadData', []);
+			getData();
+		});
+		//保证验证成功并结束编辑
+		function validateEndEditing() {
+			if (editIndex == undefined) {
+				return true
+			}
+			if ($('#dg').datagrid('validateRow', editIndex)) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+		//获得数据
+		function getData() {
+			editIndex = undefined;
+			editType = 2;
+			var url = makeUrl('getgroup', false);
+			$.get(url, function(data, status) {
+				var json = eval(data);
+				var rows = [];
+				for ( var i = 0; i < json.length; i++) {
+					rows.push({
+						id : json[i].id,
+						no : json[i].no
+					});
+				}
+				$('#dg').datagrid({
+					loadFilter : pagerFilter
+				}).datagrid('loadData', rows);
+			});
+		}
+
+		//分页程序
+		function pagerFilter(data) {
+			if (typeof data.length == 'number'
+					&& typeof data.splice == 'function') { // is array
+				data = {
+					total : data.length,
+					rows : data
+				}
+			}
+			var dg = $(this);
+			var opts = dg.datagrid('options');
+			var pager = dg.datagrid('getPager');
+			pager.pagination({
+				onSelectPage : function(pageNum, pageSize) {
+					opts.pageNumber = pageNum;
+					opts.pageSize = pageSize;
+					pager.pagination('refresh', {
+						pageNumber : pageNum,
+						pageSize : pageSize
+					});
+					dg.datagrid('loadData', data);
+				}
+			});
+			if (!data.originalRows) {
+				data.originalRows = (data.rows);
+			}
+			var start = (opts.pageNumber - 1) * parseInt(opts.pageSize);
+			var end = start + parseInt(opts.pageSize);
+			data.rows = (data.originalRows.slice(start, end));
+			return data;
+		}
+
+		//-------------------------编辑部分处理---------------------
+		var editIndex = undefined;
+		var editType = 2;
+		//双击对该行数据编辑
+		function onDblClickRow(index) {
+			if (editIndex == undefined) {
+				$('#dg').datagrid('selectRow', index).datagrid('beginEdit',
+						index)
+				editIndex = index;
+				editType = 0;
+			}
+		}
+		//新增一行数据
+		function append() {
+			if (editIndex == undefined) {
+				$('#dg').datagrid('appendRow', {
+					id : 0
+				});
+				editIndex = $('#dg').datagrid('getRows').length - 1;
+				$('#dg').datagrid('selectRow', editIndex).datagrid('beginEdit',
+						editIndex);
+				editType = 1;
+			}
+		}
+		//删除一条数据.
+		function remove() {
+			var row;
+			if (editIndex == undefined)
+				row = $('#dg').datagrid('getSelected');
+			else
+				row = $('#dg').datagrid('selectRow', editIndex).datagrid(
+						'getSelected');
+			//如果行为空直接返回
+			if (row == null)
+				return;
+
+			var urlp = {}
+			editType = -1;
+			urlp.state = editType;
+			urlp.table = "`group`";
+			urlp.id = row.id;
+			$.get("general_update?" + $.param(urlp), function(data, status) {
+				var json = eval("(" + data + ")");
+				if (json._no != "3004")
+					$.message.alert("删除失败", json._msg);
+				getData();
+			});
+			editIndex = undefined;
+			editType = 2;
+		}
+
+		//保存功能
+		function save() {
+			if (!validateEndEditing()) {
+				$.messager.alert("验证失败", "行中有非法数据!");
+				return;
+			}
+			//如果当前为浏览状态或验证不成功直接返回
+			if (editType == 2)
+				return;
+			//保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+			var rows = $('#dg').datagrid('endEdit', editIndex).datagrid(
+					'getChanges');
+			if (rows.length == 0) {
+				editIndex = undefined;
+				editType = 2;
+				$.messager.alert("保存错误", "没有改变的行,行数量为0");
+			}
+
+			var urlp = {}; //向服务器传递的参数
+			urlp.state = editType;
+			urlp.table = "`group`";
+			urlp.id = rows[0].id;
+			urlp.no = rows[0].no;
+
+			//判断当前的编辑状态
+			switch (editType) {
+			case 1:
+				$.get("general_update?" + $.param(urlp),
+						function(data, status) {
+							var json = eval("(" + data + ")");
+							if (json.id == undefined)
+								$.messager.alert("保存失败", json._msg);
+							getData();
+						});
+				break;
+			case 0:
+				$.get("general_update?" + $.param(urlp),
+						function(data, status) {
+							var json = eval("(" + data + ")");
+							if (json._no != "3003")
+								$.message.alert("更新失败", json._msg);
+							getData();
+						});
+				break;
+			case -1:
+				break;
+			default:
+				break;
+			}
+			editIndex = undefined;
+			editType = 2;
+		}
+	</script>
+</body>
+</html>

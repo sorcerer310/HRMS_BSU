@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <script type="text/javascript" src="js/ajaxfileupload.js"></script>
+        <!-- <link rel="stylesheet" type="text/css" href="css/ajaxfileupload.css"> -->
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body style="background-image:url(img/mainbg.png)">
+		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>党务工作信息传递</div>
+	    </div>
+	    <!------------------------------ 分隔空白 -------------------------------->
+	    <div style="margin:10px 0;"></div>
+	    <div id="tb" style="padding:5px;height:auto">
+
+ 			    <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="append()" >上传</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="$.messager.confirm('删除', '确定删除?', function (r){if(r){remove()}});">删除</a>
+	    				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="save()">保存</a>
+	    </div>
+ 		<table id="tg" class="easyui-treegrid" title="党务工作信息" style="height:450px"
+				data-options="
+					iconCls: 'icon-ok',
+					rownumbers: true,
+					animate: true,
+					collapsible: true,
+					fitColumns: true,
+					idField: 'id',
+					treeField: 'item',
+					showFooter: true,
+					toolbar:'#tb',
+					onDblClickRow:onDblClickRow">
+			<thead>
+				<tr>
+ 					<th data-options="field:'id',width:30,hidden:true">ID</th> 
+ 					<th data-options="field:'_parentId',width:30,hidden:true">PARENTID</th>
+ 					<th data-options="field:'blobid',width:30,hidden:true">BLOBID</th>
+ 					<th data-options="field:'userid',width:50,hidden:true">USERID</th>
+					<th data-options="field:'item',width:140,
+																	formatter:function(value,rowData,rowIndex){
+																		if(rowData._parentId!='0'){
+																			var urlp = {};
+																			urlp.type = 'read';
+																			urlp.id = rowData.blobid;
+																			urlp.fname=rowData.item;
+																			return '<a href=\'upload_file_servlet?'+$.param(urlp)+'\'>'+rowData.item+'</a>'
+																		}
+																		else
+																			return rowData.item;
+																	}
+																	">文件</th>
+					<th data-options="field:'memo',width:200,editor:'text'">备注</th>
+					<th data-options="field:'date',width:65">上传时间</th>
+				</tr>
+			</thead>
+		</table>
+		<!-- 增加数据窗口 -->
+		<div id="w1" class="easyui-window" title="上传党务信息文件" data-options="modal:true,closed:true,iconCls:'icon-save'" style="width:435px;height:400px;padding:10px;">
+			<div style="padding:10px 0 10px 10px">
+		    	<table>
+		    		<tr>
+		    			<td align="right">上传文件:</td>
+		    			<td>
+		    				 <form id="upload_form" action="upload_file_servlet?type=write" method="post" enctype="multipart/form-data">
+		    				 	<input type="file" id="upload" name="upload" />
+		    				 	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="ajaxFileUpload()">上传</a>
+		    				 </form>
+		    			</td>
+		    		</tr>
+		    		<tr>
+		    			<td align="right">选择分公司</td>
+		    			<td>
+		    				<input class="easyui-combobox"
+		    								id="unitid"
+		    								data-options="
+		    									url:'jsondata/partyunit.json',
+		    									valueField:'unitid',
+		    									textField:'unit',
+		    									panelheight:'auto',
+		    									required:true,
+		    									editable:false
+		    								">
+		    			</td>
+		    		</tr>
+		    		<tr>
+		    			<td align="right">上传文件名:</td>
+		    			<td><div id="filename" style="color:red;"></div></td>
+		    		</tr>
+	 	    		<tr>
+		    			<td align="right">备注:</td>
+		    			<td>
+		    				<textarea id="info" style="height:80px;width:240px;"></textarea>
+		    			</td>
+		    		</tr>
+		    		<tr>
+		    			<td>
+		    				<input id="blobid" type="hidden"/>
+		    			</td>
+		    		</tr>
+		    	</table>
+		    </div>
+		    <div style="text-align:center;padding:5px">
+		    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="submit()">提交数据</a>
+		    </div>
+		</div>
+		<script type="text/javascript">
+		    $(function () {
+		    	getData();
+		        extendEasyUIDataGrid();
+		    	setSelectUnit();
+		    });
+		
+	         //保证验证成功并结束编辑
+	         function validateEndEditing() {
+	             if (editIndex == undefined) { return true }
+	             if ($('#tg').treegrid('validateRow', editIndex)) {
+	                 return true;
+	             } else {
+	                 return false;
+	             }
+	         }
+	         var unitid = 0;						//全局变量,用于记录unitid
+		    //判断当前用户是否为分公司党委用户,如果不是,设置上传文件时不可选公司名称
+		    function setSelectUnit(){
+		    	$.get('getuserunitid',
+		    		function(data,status){
+		    			var json = eval("("+data+")");
+		    			unitid = json.unitid;
+		    			if(json.unitid!=999){
+		    				$('#unitid').combobox('disable');   
+		    			}
+		    	});
+		    }
+	         
+	         
+			//从数据库获得数据
+			function getData(){
+				var url = "info_party_work";
+				$.get(url,
+					function(data,status){
+						var json = eval("(" + data + ")");
+						if(json._no==1111){
+							$.messager.alert("请求数据异常", json._msg+":"+json._extramsg);
+							return;
+						}
+						var rows=[];
+						for(var i=0;i<json.length;i++){
+							rows.push({id: parseInt(json[i].id), item: json[i].item, memo:json[i].memo, date: json[i].date,blobid: json[i].blobid,
+								userid: json[i].userid, _parentId:parseInt(json[i].parentid)//, iconCls:'icon-ok' 
+							});
+						}
+						var tgrows = {};
+						tgrows.rows = rows;
+						$('#tg').treegrid('loadData', tgrows);
+					}		
+				);
+			}
+			//响应双击编辑
+			var editIndex = undefined;
+			var editType = 2;
+			function onDblClickRow(row){
+				//如果当前有行在编辑,直接返回
+				if(editIndex != undefined){
+					return;
+				}
+				
+				//var row = $('#tg').treegrid('getSelected');
+				if(row && row._parentId!=0  ){
+					//alert(index.id);
+					$('#tg').treegrid('beginEdit',row.id);
+					editIndex = row.id;
+					editType = 0;
+				}
+			}
+			
+			//增加一条数据,弹出单独窗口来填充数据
+			function append(){
+				$('#w1').window('open');
+				$('#info').val('');
+				$('#blobid').val('');
+				$('#unitid').combobox('setValue',unitid);
+				document.getElementById("filename").innerText='';
+			}
+			
+	         //删除一条数据.
+	         function remove() {
+	             var row;
+	             if (editIndex == undefined)
+	                 row = $('#tg').treegrid('getSelected');
+	             else
+	                 row = $('#tg').treegrid('selectRow', editIndex).treegrid('getSelected');
+	             //如果行为空直接返回
+	             if (row == null  || row._parentId==0)
+	                 return;
+	             
+	             var urlp = {}
+	             editType = -1;
+	             urlp.id = row.id;
+	             urlp.blobid = row.blobid;
+
+	             $.get("info_party_work_delete?" + $.param(urlp),
+	                            function (data, status) {
+	                                var json = eval("(" + data + ")");
+	                                if (json._no != "3004")
+	                                    $.messager.alert("删除失败", json._msg);
+	                                getData();
+	                            });
+	             editIndex = undefined;
+	             editType = 2;
+	         }
+
+			function save(){
+				if(!validateEndEditing()){
+					$.messager.alert("验证失败","行中有非法数据!");
+					return;
+				}
+				//如果当前的状态为浏览状态,直接返回
+				if(editType==2)
+					return;
+				//保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+				 var rows = $('#tg').treegrid('endEdit', editIndex).treegrid('getChanges');
+	             if (rows.length == 0) {
+	                 editIndex = undefined;
+	                 editType = 2;
+	                 $.messager.alert("保存错误", "没有改变的行,行数量为0");
+	             }
+	             var urlp = {};                                                 //向服务器传递的参数
+	             urlp.state = editType;
+	             urlp.table = "info_party_work";
+	             urlp.id = rows[0].id;
+	             urlp.item = rows[0].item;
+	             urlp.memo = rows[0].memo;
+	             urlp.date = rows[0].date;
+	
+	             //判断当前的编辑状态
+	             switch (editType) {
+	                 case 1:
+	                     break;
+	                 case 0:
+	                     $.get("general_update?" + $.param(urlp),
+	                             function (data, status) {
+	                                 var json = eval("(" + data + ")");
+	                                 if (json._no != "3003")
+	                                     $.message.alert("更新失败", json._msg);
+	                                 $('#tg').treegrid('acceptChanges');
+	                                 getData();
+	                             });
+	                     break;
+	                 case -1:
+	                     break;
+	                 default:
+	                     break;
+	             }
+	
+	             editIndex = undefined;
+	             editType = 2;
+			}
+			
+			//增加一条新荣誉数据
+			function submit(){
+				if($('#blobid').val()==''){
+					$.messager.alert('提交数据错误','请先上传文件再提交');
+					return;
+				}
+				 var urlp = {};                                                 //向服务器传递的参数
+	             urlp.blobid = $('#blobid').val();
+	             urlp.item = document.getElementById("filename").innerText;
+	             urlp.unitid = $('#unitid').combobox('getValue');
+	             urlp.memo = $('#info').val();
+	             //urlp.date = dt.getYear()+"-"+dt.getMonth()+"-"+dt.getDay();
+	             $.get("info_party_work_update?" + $.param(urlp),
+                         function (data, status) {
+                             var json = eval("(" + data + ")");
+                             if (json._no != 3003)
+                                 $.messager.alert("保存失败", json._msg);
+                             else{
+                            	 $('#w1').window('close');
+                            	 getData();
+                             }
+                         }
+                 );
+			}
+			
+			
+			//上传文件函数
+			function ajaxFileUpload() {
+	        		var filename = $('#upload').val();									//获得上传文件名
+	        		var index = filename.lastIndexOf("\\");
+	        		filename = filename.substring(index+1,filename.length);
+	        		
+			        $.ajaxFileUpload({
+			            url:'upload_file_servlet?type=write',
+			            secureuri:false,
+			            fileElementId:'upload',											//文件选择框的id属性
+			            dataType:'json', 														//服务器返回的格式
+			            success:function(data,status){
+			            	//如果发生异常终止程序
+			            	if(data._no==1111){
+			            		$.messager.alert(data._msg,data._extramsg);
+			            		return;
+			            	}
+			            	$('#blobid').val(data.id);
+			            	document.getElementById("filename").innerText=filename;
+			            },
+			            error : function(data, status, e){
+			            	$.messager.alert("上传失败:"+data);
+			            }
+			        });
+			    }
+		</script>
+	</body>
+</html>

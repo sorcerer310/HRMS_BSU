@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body style="background-image:url(img/mainbg.png)">
+		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>消息发布</div>
+	    </div>
+	    <input type="radio" id="type1" name="type" value="notice" checked/>通知消息<br/>
+	    <input type="radio" id="type2" name="type" value="study" />学习园地
+		<select id="type2_type" disabled="disabled">
+		   <option value="法律法规">法律法规</option>
+		   <option value="学习参考">学习参考</option>
+		 </select> 
+	    <br/><br/>
+	    <b>标题:<input class="easyui-validatebox" id="title" ></b></td>
+   	    <div style="margin:10px 0;"></div>
+   	    
+<!-- 	    <div><textarea id='txtContent' style="height:200px;width:600px"></textarea></div> -->
+		<div id="myNicPanel" style="width:600px;"></div>
+	    <div id="myInstance" style="border:1px #000000 solid;font-size:16px;padding:3px;width:600px;height:200px"></div>
+	    
+	    <div style="margin:10px 0;"></div>
+	    <a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="save()">保存</a>
+	    
+	</body>
+		<script  type="text/javascript" src="js/NICEditor/nicEdit.js"></script> 
+		  	<script type="text/javascript">
+				 //bkLib.onDomLoaded(function() { nicEditors.allTextAreas() });
+				 	   bkLib.onDomLoaded(function() {
+			          		var myNicEditor = new nicEditor();
+			         	 	myNicEditor.setPanel('myNicPanel');
+			        	  	myNicEditor.addInstance('myInstance');
+			     		});
+	  		</script>
+		<script>
+        $(function () {
+        	//type1选中时选项不可用
+			$('#type1').change(
+				function() {
+					var sval = $("input[name='type']:checked").val();  
+					$('#type2_type').attr('disabled','disabled');
+			});
+			//type2选中时选项可用
+			$('#type2').change(
+				function(){
+					var sval = $("input[name='type']:checked").val();
+					$('#type2_type').attr('disabled',false);
+				}		
+        	);
+        });
+		
+		//保存数据函数
+		function save(){
+			var id = 0;
+			var type = $("input[name='type']:checked").val();  
+			var title = $('#title').val();
+			var content = $('#myInstance').html();
+			var urlp = {};
+			if(type=='notice')
+				urlp.table = "info_notice";
+			else if(type=='study'){
+				urlp.table = "info_study";
+				urlp.type = $("#type2_type").val();  
+			}
+			urlp.id = 0;
+			urlp.title = title;
+			urlp.content = content;
+			$.post('infoupdate',$.param(urlp),function(data,status){
+				var json = eval("("+data+")");
+				if(json.id==undefined){
+					$.messager.alert("保存消息",json._msg);
+
+				}
+			})
+		}
+	</script>
+</html>

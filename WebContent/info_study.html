@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+		<body style="background-image:url(img/mainbg.png)">
+		<div class="easyui-tabs" style="width:auto;height:auto" id="tt">
+			<div title="法律法规" style="padding:10px">
+		   		<table id="dg1" class="easyui-datagrid"  style="height:auto" border="0" data-options="
+					iconcls: 'icon-edit',
+					singleSelect:true,
+					collapsible:true,
+					autoRowHeight:true,
+					striped:true,
+					pagination:true,
+					pageSize:10,
+					toolbar:'#tb',
+					showHeader:false,
+					onClickRow:onClickRow,
+					rowStyler: function(index,row){
+						return 'height:40px;font-weight:bold;font-size=40px;';
+					}
+					">
+					<thead>
+						<tr>
+							<th field="id" width="30" hidden=true >ID</th>
+							<th field="title" width="300" >title</th>
+							<th field="icon" width="40">image</th>
+							<th field="date" width="120" >date</th>													
+						</tr>
+					</thead>
+				</table>
+			</div>
+			<div title="学习参考" style="padding:10px">
+		   		<table id="dg2" class="easyui-datagrid" style="height:auto" border="0" data-options="
+					iconcls: 'icon-edit',
+					singleSelect:true,
+					collapsible:true,
+					autoRowHeight:true,
+					striped:true,
+					pagination:true,
+					pageSize:10,
+					toolbar:'#tb',
+					showHeader:false,
+					onClickRow:onClickRow,
+					rowStyler: function(index,row){
+						return 'height:40px;font-weight:bold;font-size=40px;';
+					}
+					">
+					<thead>
+						<tr>
+							<th field="id" width="30" hidden=true >ID</th>
+							<th field="title" width="300" >title</th>
+							<th field="icon" width="40">image</th>
+							<th field="date" width="120" >date</th>													
+						</tr>
+					</thead>
+				</table>
+			</div>
+<!-- 			<div title="党内会议" style="padding:10px">
+		   		<table id="dg2" class="easyui-datagrid" style="height:auto" border="0" data-options="
+					iconcls: 'icon-edit',
+					singleSelect:true,
+					collapsible:true,
+					autoRowHeight:true,
+					striped:true,
+					pagination:true,
+					pageSize:10,
+					toolbar:'#tb',
+					showHeader:false,
+					onClickRow:onClickRow,
+					rowStyler: function(index,row){
+						return 'height:40px;font-weight:bold;font-size=40px;';
+					}
+					">
+					<thead>
+						<tr>
+							<th field="id" width="30" hidden=true >ID</th>
+							<th field="title" width="300" >title</th>
+							<th field="icon" width="40">image</th>
+							<th field="date" width="120" >date</th>													
+						</tr>
+					</thead>
+				</table>
+			</div>
+			<div title="党内文件" style="padding:10px">
+		   		<table id="dg3" class="easyui-datagrid" style="height:auto" border="0" data-options="
+					iconcls: 'icon-edit',
+					singleSelect:true,
+					collapsible:true,
+					autoRowHeight:true,
+					striped:true,
+					pagination:true,
+					pageSize:10,
+					toolbar:'#tb',
+					showHeader:false,
+					onClickRow:onClickRow,
+					rowStyler: function(index,row){
+						return 'height:40px;font-weight:bold;font-size=40px;';
+					}
+					">
+					<thead>
+						<tr>
+							<th field="id" width="30" hidden=true >ID</th>
+							<th field="title" width="300" >title</th>
+							<th field="icon" width="40">image</th>
+							<th field="date" width="120" >date</th>													
+						</tr>
+					</thead>
+				</table>
+			</div> -->
+		</div>
+		<!-- 学习园地界面 -->
+		<div id="w1" class="easyui-window" title="学习园地" data-options="modal:true,closed:true,iconCls:'icon-save'" style="width:700px;height:400px;padding:10px;">
+			<h5 id="msgtitle" align="center" style="font-size:22px;"></h5>
+			<p style="font-size:15px;" id="msgcontent">
+			</p>	
+			<h1 id="msgdate" align="right" style="font-size:16px">2000-01-01</h1>
+		</div>
+		<style type="text/css">
+				.lines-both .datagrid-body td{
+				}
+				.lines-no .datagrid-body td{
+					border-right:1px dotted transparent;
+					border-bottom:1px dotted transparent;
+				}
+				.lines-right .datagrid-body td{
+					border-bottom:1px dotted transparent;
+				}
+				.lines-bottom .datagrid-body td{
+					border-right:1px dotted transparent;
+				}
+		</style>	
+		<script>
+		var parentid = 0;
+         //加载数据
+         $(function () {
+             extendEasyUIDataGrid();
+             getData("法律法规","dg1");
+             getData("学习参考","dg2");
+         });
+         
+         function getData(type,dgname) {
+             editIndex = undefined;
+             editType = 2;
+             
+             var urlp = {};
+             urlp.type=type;
+             
+             $.get("infostudy?"+$.param(urlp),
+                   function (data, status) {
+            	 		var today = new Date();
+            	 		var now = today.getFullYear()+"-"+(today.getMonth()+1)+"-"+(today.getDate()-5) ;
+            	 
+                       var json = eval(data);
+                       var rows = [];
+                       for (var i = 0; i < json.length; i++) {
+                    	   var sdate = new Date(now.replace(/-/g, "/"));
+                    	   var edate = new Date(json[i].date.replace(/-/g, "/"));
+                    	   if(edate>sdate)
+                    		   rows.push({ id: json[i].id, title:json[i].title,date: json[i].date,icon:"<img src='img/new.gif'/>"});
+                    	   else
+                           		rows.push({ id: json[i].id, title:json[i].title,date: json[i].date});
+                       }
+                       $('#'+dgname).datagrid({ loadFilter: pagerFilter }).datagrid('loadData', rows);
+
+                       $('#'+dgname).datagrid('getPanel').removeClass('lines-both lines-no lines-right lines-bottom').addClass('lines-no');
+                   },"json");
+         }
+
+         function pagerFilter(data) {
+             if (typeof data.length == 'number' && typeof data.splice == 'function') {    // is array
+                 data = {
+                     total: data.length,
+                     rows: data
+                 }
+             }
+             var dg = $(this);
+             var opts = dg.datagrid('options');
+             var pager = dg.datagrid('getPager');
+             pager.pagination({
+                 onSelectPage: function (pageNum, pageSize) {
+                     opts.pageNumber = pageNum;
+                     opts.pageSize = pageSize;
+                     pager.pagination('refresh', {
+                         pageNumber: pageNum,
+                         pageSize: pageSize
+                     });
+                     dg.datagrid('loadData', data);
+                 }
+             });
+             if (!data.originalRows) {
+                 data.originalRows = (data.rows);
+             }
+             var start = (opts.pageNumber - 1) * parseInt(opts.pageSize);
+             var end = start + parseInt(opts.pageSize);
+             data.rows = (data.originalRows.slice(start, end));
+             return data;
+         }
+         //-------------------------编辑部分处理---------------------
+         var editIndex = undefined;
+         var editType = 2;
+         //点击查看该行数据
+         function onClickRow(index,row) {
+             var urlp = {}
+             urlp.id = row.id;
+             //urlp.type = $('#tt').tabs('getSelected').panel('options').tab[0].textContent;				//此处可以获得tab标签的名称
+             urlp.type = $('#tt').tabs('getSelected').panel('options').tab[0].innerText;				//此处可以获得tab标签的名称
+        	 $.get("infostudy?"+ $.param(urlp),
+                     function (data, status) {
+                         var json = eval(data);
+                         $('#msgtitle').text(json[0].title);
+                         $('#msgcontent').html(json[0].content);
+                         $('#msgdate').html(json[0].date+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+                         $('#w1').window('open');
+                     }
+                );
+         }
+         //新增一行数据
+         function append() {
+             if (editIndex == undefined) {
+                 $('#dg').datagrid('appendRow', { id: 0 });
+                 editIndex = $('#dg').datagrid('getRows').length - 1;
+                 $('#dg').datagrid('selectRow', editIndex)
+                                     .datagrid('beginEdit', editIndex);
+                 editType = 1;
+             }
+         }
+         //删除一条数据.
+         function remove() {
+             var row;
+             if (editIndex == undefined)
+                 row = $('#dg').datagrid('getSelected');
+             else
+                 row = $('#dg').datagrid('selectRow', editIndex).datagrid('getSelected');
+             //如果行为空直接返回
+             if (row == null)
+                 return;
+
+             var urlp = {}
+             editType = -1;
+             urlp.state = editType;
+             urlp.table = "poor_member_help";
+             urlp.id = row.id;
+
+             $.get("general_update?" + $.param(urlp),
+                            function (data, status) {
+                                var json = eval("(" + data + ")");
+                                if (json._no != "3004")
+                                    $.message.alert("删除失败", json._msg);
+                                getData();
+                            });
+             editIndex = undefined;
+             editType = 2;
+         }
+
+         //保存功能
+         function save() {
+             if (!validateEndEditing()) {
+                 $.messager.alert("验证失败", "行中有非法数据!");
+                 return;
+             }
+             //如果当前为浏览状态或验证不成功直接返回
+             if (editType == 2)
+                 return;
+
+             //保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+             var rows = $('#dg').datagrid('endEdit', editIndex).datagrid('getChanges');
+             if (rows.length == 0) {
+                 editIndex = undefined;
+                 editType = 2;
+                 $.messager.alert("保存错误", "没有改变的行,行数量为0");
+             }
+            
+             var urlp = {};                                                 //向服务器传递的参数
+             urlp.state = editType;
+             urlp.table = "poor_member_help";
+             urlp.id = rows[0].id;
+             urlp.parentid = parentid;
+             urlp.help_date = rows[0].help_date;
+             urlp.help_method = rows[0].help_method;
+             urlp.is_leave_poor = rows[0].is_leave_poor;
+
+             //判断当前的编辑状态
+             switch (editType) {
+                 case 1:
+                     $.get("general_update?" + $.param(urlp),
+                               function (data, status) {
+                                   var json = eval("(" + data + ")");
+                                   if (json.id == undefined)
+                                       $.messager.alert("保存失败", json._msg);
+                                   getData();
+                               }
+                       );
+                     break;
+                 case 0:
+                     $.get("general_update?" + $.param(urlp),
+                             function (data, status) {
+                                 var json = eval("(" + data + ")");
+                                 if (json._no != "3003")
+                                     $.message.alert("更新失败", json._msg);
+                                 getData();
+                             });
+                     break;
+                 case -1:
+                     break;
+                 default:
+                     break;
+             }
+
+             editIndex = undefined;
+             editType = 2;
+         }
+		</script>
+	
+	</body>
+</html>

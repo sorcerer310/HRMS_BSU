@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body style="background-image:url(img/mainbg.png)">
+		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>荣誉表彰</div>
+	    </div>
+	    <div id="tb" style="padding:5px;height:auto">
+ 			    <a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="append()" >新建</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="$.messager.confirm('删除', '确定删除?', function (r){if(r){remove()}});">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="save()">保存</a>
+	    </div>
+	    
+	    <table id="tg" class="easyui-treegrid" title="荣誉表彰" style="height:450px"
+				data-options="
+					iconCls: 'icon-ok',
+					rownumbers: true,
+					animate: true,
+					collapsible: true,
+					fitColumns: true,
+					idField: 'id',
+					treeField: 'item',
+					showFooter: true,
+					toolbar:'#tb',
+					onDblClickRow:onDblClickRow"
+				>
+			<thead>
+				<tr>
+ 					<th data-options="field:'id',width:30,hidden:true">ID</th> 
+ 					<th data-options="field:'_parentId',width:30,hidden:true">PARENTID</th>
+					<th data-options="field:'item',width:180,editor:'text'">目录/奖项</th>
+<!--  					<th data-options="field:'name',width:50,editor:'text',">名称</th> -->
+					<th data-options="field:'info',width:200,editor:'text'">荣誉信息</th>
+					<th data-options="field:'date',width:80,editor:'datebox'">获得时间</th>
+					<th data-options="field:'praise_unit',width:80,editor:'text'">表彰单位</th>
+					<th data-options="field:'praise_object',width:80,editor:'text'">被表彰单位/个人</th>
+					<th data-options="field:'memo',width:200,editor:'text'">备注</th>
+				</tr>
+			</thead>
+		</table>
+		<!-- 增加数据窗口 -->
+		<div id="w1" class="easyui-window" title="增加荣誉表彰数据" data-options="modal:true,closed:true,iconCls:'icon-save'" style="width:auto;height:auto;padding:10px;">
+				<div style="padding:10px 0 10px 10px" align="center">
+			    	<table width="350" >
+			    		<tr>
+			    			<td align="right">荣誉类别:</td>
+			    			<td align="left">
+			    				<select class="easyui-combobox" id="lev1" style="width:140px">
+			    					<option value="1">个人</option>
+			    					<option value="2">集体</option>
+			    				</select>
+			    			</td>
+			    		</tr>
+			    		<tr>
+			    			<td align="right">荣誉级别:</td>
+			    			<td align="left">
+			    				<select class="easyui-combobox" id="lev2" style="width:140px">
+			    					<option value="3">国家</option>
+			    					<option value="4">省级</option>
+			    					<option value="5">市级</option>
+			    					<option value="6">县级</option>
+			    				</select>
+			    			</td>
+			    		</tr>
+			    		<tr>
+			    			<td align="right">奖项:</td>
+			    			<td align="left"><input class="easyui-validatebox" type="text" id="item" data-options="required:true"></input></td>
+			    		</tr>	
+<!-- 			    		<tr>
+			    			<td align="right">名称:</td>
+			    			<td align="left"><input class="easyui-validatebox" type="text" id="name" data-options="required:true"></input></td>
+			    		</tr> -->
+						<tr>
+			    			<td align="right">荣誉信息:</td>
+			    			<td align="left"><textarea id="info" style="height:60px;width:280px;"></textarea></td>
+			    		</tr>
+		    			<tr>
+			    			<td align="right">获奖时间:</td>
+			    			<td align="left"><input class="easyui-datebox" id="date" data-options="required:true"></input></td>
+			    		</tr>
+			    		<tr>
+			    			<td align="right">表彰单位:</td>
+			    			<td align="left"><input class="easyui-validatebox" type="text" id="praise_unit" data-options="required:true"></input></td>
+			    		</tr>
+			    		<tr>
+			    			<td align="right">被表彰单位/个人:</td>
+			    			<td align="left"><input class="easyui-validatebox" type="text" id="praise_object" data-options="required:true"></input></td>
+			    		</tr>
+			    		<tr>
+			    			<td align="right">备注:</td>
+			    			<td align="left"><textarea id="memo" style="height:60px;width:280px;"></textarea></td>
+			    		</tr>
+			    	</table>
+			    </div>
+			    <div style="text-align:center;padding:5px">
+			    	<a href="javascript:void(0)" class="easyui-linkbutton" onclick="submit()">提交数据</a>
+			    </div>
+		</div>
+		<script type="text/javascript">
+		    $(function () {
+		    	getData();
+		        extendEasyUIDataGrid();
+		    });
+		
+	         //保证验证成功并结束编辑
+	         function validateEndEditing() {
+	             if (editIndex == undefined) { return true }
+	             if ($('#tg').treegrid('validateRow', editIndex)) {
+	                 return true;
+	             } else {
+	                 return false;
+	             }
+	         }
+		    
+			//从数据库获得数据
+			function getData(){
+				var url = "info_honor";
+				$.get(url,
+					function(data,status){
+						var json = eval(data);
+						var rows=[];
+						for(var i=0;i<json.length;i++){
+							rows.push({id: parseInt(json[i].id), item: json[i].item, name:json[i].name,info:json[i].info, date: json[i].date,praise_unit: json[i].praise_unit,
+								praise_object: json[i].praise_object, memo:json[i].memo, _parentId:parseInt(json[i].parentid)//, iconCls:"icon-add" 
+							});
+							if(json[i].parentid != "0")
+								rows._parentId = parseInt(json[i].parentid);
+						}
+						var tgrows = {};
+						tgrows.rows = rows;
+						$('#tg').treegrid('loadData', tgrows);
+					}		
+				);
+			}
+			//响应双击编辑
+			var editIndex = undefined;
+			var editType = 2;
+			function onDblClickRow(row){
+				//如果当前有行在编辑,直接返回
+				if(editIndex != undefined){
+					return;
+				}
+				
+				//var row = $('#tg').treegrid('getSelected');
+				if(row && row._parentId!=0 && row._parentId!=1 && row._parentId!=2){
+					//alert(index.id);
+					$('#tg').treegrid('beginEdit',row.id);
+					editIndex = row.id;
+					editType = 0;
+				}
+			}
+			
+			//增加一条数据,弹出单独窗口来填充数据
+			function append(){
+				$('#w1').window('open');
+			}
+			
+	         //删除一条数据.
+	         function remove() {
+	             var row;
+	             if (editIndex == undefined)
+	                 row = $('#tg').treegrid('getSelected');
+	             else
+	                 row = $('#tg').treegrid('selectRow', editIndex).treegrid('getSelected');
+	             //如果行为空直接返回
+	             if (row == null || row._parentId==0 || row._parentId==1 || row._parentId==2)
+	                 return;
+
+	             var urlp = {}
+	             editType = -1;
+	             urlp.state = editType;
+	             urlp.table = "info_honor";
+	             urlp.id = row.id;
+
+	             $.get("general_update?" + $.param(urlp),
+	                            function (data, status) {
+	                                var json = eval("(" + data + ")");
+	                                if (json._no != "3004")
+	                                    $.message.alert("删除失败", json._msg);
+	                                getData();
+	                            });
+	             editIndex = undefined;
+	             editType = 2;
+	         }
+
+			function save(){
+				if(!validateEndEditing()){
+					$.messager.alert("验证失败","行中有非法数据!");
+					return;
+				}
+				//如果当前的状态为浏览状态,直接返回
+				if(editType==2)
+					return;
+				//保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+				 var rows = $('#tg').treegrid('endEdit', editIndex).treegrid('getChanges');
+	             if (rows.length == 0) {
+	                 editIndex = undefined;
+	                 editType = 2;
+	                 $.messager.alert("保存错误", "没有改变的行,行数量为0");
+	             }
+	             var urlp = {};                                                 //向服务器传递的参数
+	             urlp.state = editType;
+	             urlp.table = "info_honor";
+	             urlp.id = rows[0].id;
+	             urlp.item = rows[0].item;
+	             urlp.name=rows[0].name;
+	             urlp.info = rows[0].info;
+	             urlp.date = rows[0].date;
+	             urlp.praise_unit = rows[0].praise_unit;
+	             urlp.praise_object = rows[0].praise_object;
+				 urlp.memo = rows[0].memo;
+	             //判断当前的编辑状态
+	             switch (editType) {
+	                 case 1:
+	                     break;
+	                 case 0:
+	                     $.get("general_update?" + $.param(urlp),
+	                             function (data, status) {
+	                                 var json = eval("(" + data + ")");
+	                                 if (json._no != "3003")
+	                                     $.message.alert("更新失败", json._msg);
+	                                 $('#tg').treegrid('acceptChanges');
+	                                 getData();
+	                             });
+	                     break;
+	                 case -1:
+	                     break;
+	                 default:
+	                     break;
+	             }
+	
+	             editIndex = undefined;
+	             editType = 2;
+			}
+			
+			//增加一条新荣誉数据
+			function submit(){
+				 var urlp = {};                                                 //向服务器传递的参数
+	             urlp.state = 1;
+	             urlp.table = "info_honor";
+	             urlp.id = 0;
+	             urlp.item = $('#item').val();
+	             urlp.name=$('#item').val();
+	             urlp.info = $('#info').val();
+	             urlp.date = $('#date').datebox('getValue');
+	             urlp.praise_unit = $('#praise_unit').val();
+	             urlp.praise_object = $('#praise_object').val();
+	             urlp.memo = $('#memo').val();
+	             var lev1 = parseInt($('#lev1').combobox('getValue'));
+	             var lev2 = parseInt($('#lev2').combobox('getValue'));
+	             urlp.parentid = lev2+(lev1-1)*4;
+	             
+	             $.get("general_update?" + $.param(urlp),
+                         function (data, status) {
+                             var json = eval("(" + data + ")");
+                             if (json.id == undefined)
+                                 $.messager.alert("保存失败", json._msg);
+                             //clear();
+                             else{
+                            	$('#w1').window('close');
+                             	getData();
+                             }
+                         }
+                 );
+			}
+			//清除新增数据界面的数据
+		/*	function clear(){
+				$('#lev1').combobox('setValue',1);
+				$('#lev2').combobox('setValue',3);
+				$('#item).val('');
+				$('#info').val('');
+				$('#date').val('');
+				$('#praise_unit').val('');
+				$('#praise_object').val('');
+			}*/
+			
+		</script>
+	</body>
+</html>

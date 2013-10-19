@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/demo.css">
+	    <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/default/easyui.css">
+        <link rel="stylesheet" type="text/css" href="css/EasyUI/themes/icon.css">
+        <script type="text/javascript" src="js/EasyUI/jquery-1.8.0.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="js/EasyUI/locale/easyui-lang-zh_CN.js"></script>
+        <script type="text/javascript" src="js/json2.js"></script>
+        <script type="text/javascript" src="js/bsu.js"></script>
+        <meta charset="utf-8" />
+        <title>中油员工信息管理系统</title>
+    </head>
+	<body>
+<!-- 		<div class="demo-info">
+		    <div class="demo-tip icon-tip"></div>
+		    <div>家庭成员</div>
+	    </div>
+	    
+	    <div style="margin:10px 0;"></div> -->
+	    
+	    
+  		<div id="tb" style="padding:5px;height:auto">
+			<div style="margin-bottom:5px">
+				<a href="#" class="easyui-linkbutton" iconCls="icon-save" plain="true" id="bt_save" onclick="save()">保存</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-add" plain="true" id="bt_new" onclick="append()" >新建</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-remove" plain="true" id="bt_delete" onclick="$.messager.confirm('删除', '确定删除?', function (r){if(r){remove()}});">删除</a>
+				<a href="#" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="getData()">查询</a>
+			</div>
+		</div>					
+   		<table id="dg" title="家庭成员" style="height:300px" data-options="
+			iconcls: 'icon-edit',
+			rownumbers:true,
+			singleSelect:true,
+			autoRowHeight:false,
+			pageSize:50,
+			toolbar:'#tb',
+			onDblClickRow:onDblClickRow
+			">
+			<thead>
+				<tr>
+					<th field="id" width="30" hidden="true">ID</th>
+					<th field="parentid" width="30" hidden="true">PARENTID</th>
+					<th field="name" width="100" editor="text">姓名</th>
+					<th field="gender" width="40" data-options="formatter:function(value,row){return row.gender;},
+																	editor:{type:'combobox',
+																		options:{
+																			valueField:'gender',
+																			textField:'gender',
+																			url:'jsondata/gender.json',
+																			required:true,
+																			missingMessage:'性别不能为空',
+																			editable:false
+																		}
+																	}">性别</th>
+					<th field="relation" width="40" data-options="formatter:function(value,row){return row.relation;},
+																	editor:{type:'combobox',
+																		options:{
+																			valueField:'relation',
+																			textField:'relation',
+																			url:'jsondata/poor_relation.json',
+																			required:true,
+																			missingMessage:'家庭关系不能为空',
+																			editable:false
+																		}
+																	}">家庭关系</th>
+ 					<th field="pi" width="70" data-options="formatter:function(value,row){return row.pi;},
+																		editor:{type:'combobox',
+																		options:{
+																			valueField:'pi',
+																			textField:'pi',
+																			url:'jsondata/poor_pi.json',
+																			required:true,
+																			missingMessage:'政治面貌不能为空',
+																			editable:false
+																		}
+																	}">政治面貌</th> 		
+					<th field="birthday" width="85" data-options="editor:{type:'datebox',
+																							options:{
+																								required:true,
+																								missingMessage:'日期不能为空',
+																								editable:false
+																							}
+																						}">生日</th> 
+					<th field="health" width="100" data-options="formatter:function(value,row){return row.health;},
+																		editor:{type:'combobox',
+																		options:{
+																			valueField:'health',
+																			textField:'health',
+																			url:'jsondata/poor_health.json',
+																			required:true,
+																			missingMessage:'健康状况不能为空',
+																			editable:false
+																			}
+																		}">健康状况</th>
+					<th field="income" width="90" data-options="editor:{type:'numberbox',options:{precision:1,required:true,missingMessage:'月均收入不能为空'}}" >月均收入</th>
+					<th field="unit" width="150" data-options="editor:{type:'text',options:{required:true,missingMessage:'单位或学校不能为空'}}">单位或学校</th>
+				</tr>
+			</thead>
+		</table>
+	<script>
+		var parentid = 0;
+		var unitid = 0;
+         //加载数据
+         $(function () {
+             extendEasyUIDataGrid();
+             $('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', []);
+            
+             parentid = getUrlParam("parentid");
+             unitid = getUrlParam("unitid");
+             
+             //根据unitid判断编辑类按钮是否可用
+             $.get("tool_get_unitid",
+            	function(data,status){
+	            	var tjson = eval("(" + data + ")");
+	     		 	if(tjson._no =="3021" && tjson._extramsg!=unitid){
+	     		 		//三个按钮设置为隐藏
+	     	             $('#bt_save').hide();
+	     	             $('#bt_new').hide();
+	     	             $('#bt_delete').hide();
+	     	             //设置editIndex为-1,阻止编辑
+	     	             editIndex = -1;
+	     		 	}
+ 			 	});
+             
+             getData();
+             //$('#tb').hide();
+
+			
+             
+         });
+         //保证验证成功并结束编辑
+         function validateEndEditing() {
+             if (editIndex == undefined) { return true }
+             if ($('#dg').datagrid('validateRow', editIndex)) {
+                 return true;
+             } else {
+                 return false;
+             }
+         }
+
+         //获得数据
+         function getData() {
+             editIndex = undefined;
+             editType = 2;
+        	 var url = makeUrl("member_poor_family",false);
+             $.get(url+"parentid="+parentid,
+                  function (data, status) {
+                      var json = eval(data);
+                      var rows = [];
+                      for (var i = 0; i < json.length; i++) {
+                          rows.push({ id: json[i].id, parentid:json[i].parentid,name: json[i].name, gender: json[i].gender,
+                          	relation:json[i].relation,pi:json[i].pi,birthday: json[i].birthday,
+                              health: json[i].health, income: json[i].income, unit: json[i].unit
+						});
+                      }
+                      $('#dg').datagrid({ loadFilter: pagerFilter }).datagrid('loadData', rows);
+                  });
+         }
+
+         function pagerFilter(data) {
+             if (typeof data.length == 'number' && typeof data.splice == 'function') {    // is array
+                 data = {
+                     total: data.length,
+                     rows: data
+                 }
+             }
+             var dg = $(this);
+             var opts = dg.datagrid('options');
+             var pager = dg.datagrid('getPager');
+             pager.pagination({
+                 onSelectPage: function (pageNum, pageSize) {
+                     opts.pageNumber = pageNum;
+                     opts.pageSize = pageSize;
+                     pager.pagination('refresh', {
+                         pageNumber: pageNum,
+                         pageSize: pageSize
+                     });
+                     dg.datagrid('loadData', data);
+                 }
+             });
+             if (!data.originalRows) {
+                 data.originalRows = (data.rows);
+             }
+             var start = (opts.pageNumber - 1) * parseInt(opts.pageSize);
+             var end = start + parseInt(opts.pageSize);
+             data.rows = (data.originalRows.slice(start, end));
+             return data;
+         }
+         //-------------------------编辑部分处理---------------------
+         var editIndex = undefined;
+         var editType = 2;
+         //双击对该行数据编辑
+         function onDblClickRow(index) {
+             if (editIndex == undefined) {
+                 $('#dg').datagrid('selectRow', index)
+                                 .datagrid('beginEdit', index)
+                 editIndex = index;
+                 editType = 0;
+             }
+         }
+         //新增一行数据
+         function append() {
+             if (editIndex == undefined) {
+                 $('#dg').datagrid('appendRow', { id: 0 });
+                 editIndex = $('#dg').datagrid('getRows').length - 1;
+                 $('#dg').datagrid('selectRow', editIndex)
+                                     .datagrid('beginEdit', editIndex);
+                 editType = 1;
+             }
+         }
+         //删除一条数据.
+         function remove() {
+             var row;
+             if (editIndex == undefined)
+                 row = $('#dg').datagrid('getSelected');
+             else
+                 row = $('#dg').datagrid('selectRow', editIndex).datagrid('getSelected');
+             //如果行为空直接返回
+             if (row == null)
+                 return;
+
+             var urlp = {}
+             editType = -1;
+             urlp.state = editType;
+             urlp.table = "poor_member_family";
+             urlp.id = row.id;
+
+             $.get("general_update?" + $.param(urlp),
+                            function (data, status) {
+                                var json = eval("(" + data + ")");
+                                if (json._no != "3004")
+                                    $.message.alert("删除失败", json._msg);
+                                getData();
+                            });
+             editIndex = undefined;
+             editType = 2;
+         }
+
+         //保存功能
+         function save() {
+             if (!validateEndEditing()) {
+                 $.messager.alert("验证失败", "行中有非法数据!");
+                 return;
+             }
+             //如果当前为浏览状态或验证不成功直接返回
+             if (editType == 2)
+                 return;
+
+             //保存时先结束编辑状态,然后获得改变的行,最后保存到数据库
+             var rows = $('#dg').datagrid('endEdit', editIndex).datagrid('getChanges');
+             if (rows.length == 0) {
+                 editIndex = undefined;
+                 editType = 2;
+                 $.messager.alert("保存错误", "没有改变的行,行数量为0");
+             }
+            
+             var urlp = {};                                                 //向服务器传递的参数
+             urlp.state = editType;
+             urlp.table = "poor_member_family";
+             urlp.id = rows[0].id;
+             urlp.parentid = parentid;
+             urlp.name = rows[0].name;
+             urlp.gender = rows[0].gender;
+             urlp.relation = rows[0].relation;
+             urlp.pi = rows[0].pi;
+             urlp.birthday = rows[0].birthday;
+             urlp.health = rows[0].health;
+             urlp.income = rows[0].income;
+             urlp.unit = rows[0].unit;
+
+             //判断当前的编辑状态
+             switch (editType) {
+                 case 1:
+                     $.get("general_update?" + $.param(urlp),
+                               function (data, status) {
+                                   var json = eval("(" + data + ")");
+                                   if (json.id == undefined)
+                                       $.messager.alert("保存失败", json._msg);
+                                   getData();
+                               }
+                       );
+                     break;
+                 case 0:
+                     $.get("general_update?" + $.param(urlp),
+                             function (data, status) {
+                                 var json = eval("(" + data + ")");
+                                 if (json._no != "3003")
+                                     $.message.alert("更新失败", json._msg);
+                                 getData();
+                             });
+                     break;
+                 case -1:
+                     break;
+                 default:
+                     break;
+             }
+
+             editIndex = undefined;
+             editType = 2;
+         }
+		</script>		
+	</body>
+</html>
